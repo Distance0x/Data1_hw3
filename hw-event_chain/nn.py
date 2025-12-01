@@ -33,7 +33,7 @@ EMBED_SIZE = 128      # 词向量维度
 HIDDEN_SIZE = 128     # LSTM隐藏层大小
 MAX_LEN = 100         # 序列最大长度
 BATCH_SIZE = 32       # 批大小
-EPOCHS = 5           # 训练轮数
+EPOCHS = 10           # 训练轮数
 RANDOM_SEED = 42      # 随机种子  传统好吧
 
 # TODO end

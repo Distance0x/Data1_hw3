@@ -95,6 +95,8 @@ def read_question_corpus():
             
             # 解析所有事件
             events = []
+            valid_question = True # 标记该问题是否有效（所有事件都有角色）
+            
             for i in range(1, len(parts)):
                 event_str = parts[i].strip()
                 if not event_str:
@@ -104,17 +106,20 @@ def read_question_corpus():
                 activity = event_parts[0] if len(event_parts) > 0 else ''
                 role = event_parts[1].split('<&>') if len(event_parts) > 1 and event_parts[1] else []
                 
-                # 如果是候选事件（通常在后面）且没有角色，尝试补充
-                # 这里简单对所有没有角色的事件尝试补充，因为前缀事件通常都有角色
+                # 如果没有角色，尝试补充
                 if not role:
                     if activity in activity_roles:
                         role = [random.choice(list(activity_roles[activity]))]
-                    elif all_roles:
-                        # 如果该活动在测试集中没出现过，随机选一个角色，避免空角色泄露信息
-                        role = [random.choice(all_roles)]
+                    else:
+                        # 如果无法从测试集中找到对应的角色，则标记为无效
+                        valid_question = False
+                        break
                 
                 events.append(Event(activity, role))
             
+            if not valid_question:
+                continue
+
             # 最后5个是候选事件（choices），前面的都是前缀事件（context）
             # 前缀事件数量不固定，候选事件固定为5个
             if len(events) >= 6:  # 至少1个context + 5个choices
@@ -122,6 +127,7 @@ def read_question_corpus():
                 choices = events[-5:]  # 最后5个是候选事件
                 questions.append(Question(answer, context, choices))
     
+    print(f"Loaded {len(questions)} valid training questions.")
     return questions
     # TODO end
 
@@ -181,10 +187,10 @@ def read_c_and_j_corpus():
                     events.append(Event(activity, [role] if role else []))
         
         # 对于每个流程，我们可以构造多个问题
-        # 使用前8个事件作为context，第9个作为正确答案
-        if len(events) >= 9:
-            context = events[:8]
-            correct_event = events[8]
+        # 使用前n-1个事件作为context，最后一个作为正确答案
+        if len(events) >= 2:
+            context = events[:-1]
+            correct_event = events[-1]
             
             # 生成4个随机干扰项
             choices = [correct_event]  # 正确答案放在第一个位置
