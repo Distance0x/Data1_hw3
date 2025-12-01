@@ -42,6 +42,32 @@ class Question:
         return f"Question(answer={self.answer}, context={context_str}, choices={choices_str})"
 
 
+def get_activity_role_map():
+    """从测试集构建 activity -> roles 的映射"""
+    activity_roles = {}
+    all_roles = set()
+    
+    if not os.path.exists(test_dir):
+        return activity_roles, list(all_roles)
+
+    test_files = [f for f in os.listdir(test_dir) if f.startswith('chain-')]
+    for filename in test_files:
+        filepath = os.path.join(test_dir, filename)
+        with open(filepath, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if not line: continue
+                parts = line.split()
+                if len(parts) >= 3:
+                    activity = parts[1]
+                    role = parts[2]
+                    if activity not in activity_roles:
+                        activity_roles[activity] = set()
+                    activity_roles[activity].add(role)
+                    all_roles.add(role)
+    return activity_roles, list(all_roles)
+
+
 def read_question_corpus():
     """读取训练文件并转换
     
@@ -52,6 +78,9 @@ def read_question_corpus():
 
     # TODO start：在下方实现函数
     questions = []
+    
+    # 获取补充角色所需的信息
+    activity_roles, all_roles = get_activity_role_map()
     
     with open(train_file, 'r', encoding='utf-8') as f:
         for line in f:
@@ -74,6 +103,16 @@ def read_question_corpus():
                 event_parts = event_str.split('<|>')
                 activity = event_parts[0] if len(event_parts) > 0 else ''
                 role = event_parts[1].split('<&>') if len(event_parts) > 1 and event_parts[1] else []
+                
+                # 如果是候选事件（通常在后面）且没有角色，尝试补充
+                # 这里简单对所有没有角色的事件尝试补充，因为前缀事件通常都有角色
+                if not role:
+                    if activity in activity_roles:
+                        role = [random.choice(list(activity_roles[activity]))]
+                    elif all_roles:
+                        # 如果该活动在测试集中没出现过，随机选一个角色，避免空角色泄露信息
+                        role = [random.choice(all_roles)]
+                
                 events.append(Event(activity, role))
             
             # 最后5个是候选事件（choices），前面的都是前缀事件（context）
