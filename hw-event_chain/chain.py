@@ -43,28 +43,36 @@ class Question:
 
 
 def get_activity_role_map():
-    """从测试集构建 activity -> roles 的映射"""
+    """从训练集构建 activity -> roles 的映射"""
     activity_roles = {}
     all_roles = set()
     
-    if not os.path.exists(test_dir):
+    if not os.path.exists(train_file):
         return activity_roles, list(all_roles)
 
-    test_files = [f for f in os.listdir(test_dir) if f.startswith('chain-')]
-    for filename in test_files:
-        filepath = os.path.join(test_dir, filename)
-        with open(filepath, 'r', encoding='utf-8') as f:
-            for line in f:
-                line = line.strip()
-                if not line: continue
-                parts = line.split()
-                if len(parts) >= 3:
-                    activity = parts[1]
-                    role = parts[2]
-                    if activity not in activity_roles:
-                        activity_roles[activity] = set()
-                    activity_roles[activity].add(role)
-                    all_roles.add(role)
+    with open(train_file, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line: continue
+            
+            parts = line.split('<@>')
+            # parts[0] is answer index
+            for i in range(1, len(parts)):
+                event_str = parts[i].strip()
+                if not event_str: continue
+                
+                event_parts = event_str.split('<|>')
+                activity = event_parts[0] if len(event_parts) > 0 else ''
+                # 只有当角色存在时才记录
+                if len(event_parts) > 1 and event_parts[1]:
+                    roles = event_parts[1].split('<&>')
+                    for r in roles:
+                        if r:
+                            if activity not in activity_roles:
+                                activity_roles[activity] = set()
+                            activity_roles[activity].add(r)
+                            all_roles.add(r)
+                            
     return activity_roles, list(all_roles)
 
 
@@ -111,7 +119,7 @@ def read_question_corpus():
                     if activity in activity_roles:
                         role = [random.choice(list(activity_roles[activity]))]
                     else:
-                        # 如果无法从测试集中找到对应的角色，则标记为无效
+                        # 如果无法从训练集中找到对应的角色，则标记为无效
                         valid_question = False
                         break
                 
