@@ -1,0 +1,64 @@
+@startuml
+skinparam handwritten false
+skinparam shadowing false
+skinparam defaultFontName "Microsoft YaHei"
+skinparam swimlaneBorderColor black
+skinparam swimlaneTitleBackgroundColor #EEEEEE
+skinparam nodesep 60
+skinparam ranksep 40
+
+|患者|
+start
+:挂号 (Registration);
+
+|门诊医生|
+:问诊 (Consultation);
+
+' 检查/处方/直接结束 三分支
+if (本次需要？) then (开具检查)
+  |门诊医生|
+  :开具检查 (Order Test);
+
+  |收银员|
+  :缴费 (Payment);
+
+  |检验/检查医生|
+  fork
+    :化验 (Lab Test);
+  fork again
+    :身体检查 (Examination);
+  end fork
+
+  :报告完成 (Report Completed);
+
+  |门诊医生|
+  if (复诊查看结果后?) then (开具处方)
+    :开具处方 (Prescribe Medicine);
+
+    |收银员|
+    :缴费 (Payment);
+
+    |药房|
+    :配药 (Dispense Medicine);
+    :发药 (Deliver Medicine);
+    --> stop
+  else (无需处方/其他)
+    --> stop
+  endif
+
+elseif (开具处方)
+  |门诊医生|
+  :开具处方 (Prescribe Medicine);
+
+  |收银员|
+  :缴费 (Payment);
+
+  |药房|
+  :配药 (Dispense Medicine);
+  :发药 (Deliver Medicine);
+  --> stop
+
+else (直接结束)
+  --> stop
+endif
+@enduml

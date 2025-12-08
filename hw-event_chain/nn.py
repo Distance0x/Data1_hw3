@@ -31,6 +31,8 @@ from tensorflow.keras.models import Model, Sequential
 
 EMBED_SIZE = 128      # 词向量维度
 HIDDEN_SIZE = 128     # LSTM隐藏层大小
+NUM_LAYERS = 2        # LSTM层数（>1 时自动堆叠，前层 return_sequences=True）
+DROPOUT = 0.2         # LSTM层输出 dropout
 MAX_LEN = 100         # 序列最大长度
 BATCH_SIZE = 32       # 批大小
 EPOCHS = 10           # 训练轮数
@@ -60,8 +62,12 @@ def lstm_train(X_train,y_train,vocab_size):
     main_input = Input(shape=(MAX_LEN,), dtype='int32')
            
     x = Embedding(output_dim=EMBED_SIZE, input_dim=vocab_size, input_length=MAX_LEN)(main_input)
-           
-    lstm_out = LSTM(HIDDEN_SIZE)(x)
+    
+    # 堆叠多层 LSTM，前层需 return_sequences=True
+    h = x
+    for i in range(max(NUM_LAYERS - 1, 0)):
+        h = LSTM(HIDDEN_SIZE, return_sequences=True, dropout=DROPOUT)(h)
+    lstm_out = LSTM(HIDDEN_SIZE, dropout=DROPOUT)(h)
     
     main_loss = Dense(1, activation='sigmoid', name='main_output')(lstm_out)
     

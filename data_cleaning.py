@@ -4,11 +4,8 @@ HIS数据清洗与XES转换脚本
 
 功能:
 1. 数据清洗与预处理
-2. 转换为XES格式（符合 http://www.xes-standard.org/ 标准）
-3. 支持多种清洗策略
+2. 转换为XES格式
 
-Usage:
-    python data_cleaning.py HISData2025.csv output.xes [--strategy basic|merged|simplified]
 """
 from __future__ import annotations
 
